@@ -1,33 +1,44 @@
-import os
 from flask import Flask, request, jsonify, render_template_string
-from flask_cors import CORS
-import requests
+import os, requests
 
 app = Flask(__name__)
-CORS(app)
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-HTML = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KIRA</title><style>body{background:#0a0a0a;color:#fff;font-family:sans-serif;height:100vh;display:flex;flex-direction:column}.h{padding:15px;background:#111;border-bottom:1px solid #222;text-align:center;color:#a855f7;font-weight:bold} #c{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:10px}.m{max-width:85%;padding:12px 16px;border-radius:18px}.u{align-self:flex-end;background:#a855f7}.b{align-self:flex-start;background:#1e1e1e}.i{display:flex;padding:12px;gap:10px;background:#111} input{flex:1;padding:12px;border-radius:20px;border:1px solid #333;background:#1a1a1a;color:#fff} button{padding:10px 20px;border-radius:20px;border:0;background:#a855f7;color:#fff}</style></head><body><div class=h>⚡ KIRA - Bujumbura</div><div id=c><div class="m b">Yo Patron! KIRA est en ligne 🚀</div></div><div class=i><input id=t placeholder="Parle à Kira..." onkeydown="if(event.key==='Enter')send()"><button onclick="send()">OK</button></div><script>async function send(){let i=document.getElementById('t'),v=i.value.trim();if(!v)return;let c=document.getElementById('c');c.innerHTML+=`<div class='m u'>${v}</div>`;i.value='';c.innerHTML+=`<div class='m b' id='w'>...</div>`;let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:v})});let d=await r.json();document.getElementById('w').remove();c.innerHTML+=`<div class='m b'>${d.reply}</div>`;c.scrollTop=c.scrollHeight}</script></body></html>"""
+HTML = """<!DOCTYPE html><html><head><meta name=viewport content='width=device-width,initial-scale=1'><title>KIRA</title>
+<style>body{background:#000;color:#fff;font-family:sans-serif;margin:0;padding:10px}#chat{height:75vh;overflow-y:auto;border:1px solid #333;border-radius:10px;padding:10px}.msg{background:#222;margin:8px;padding:10px;border-radius:15px}.user{background:#7c3aed;margin-left:40px;text-align:right}input{width:70%;padding:12px;border-radius:20px;border:none}button{padding:12px 20px;border-radius:20px;border:none;background:#7c3aed;color:#fff}</style>
+</head><body><h3>⚡ KIRA - Bujumbura</h3><div id=chat><div class=msg>Yo Patron! KIRA est en ligne 🚀 Tape un message</div></div>
+<div style=display:flex;gap:5px;position:fixed;bottom:10px;width:95%><input id=i placeholder='Parle à KIRA...'><button onclick=send()>Send</button></div>
+<script>async function send(){let m=document.getElementById('i').value;if(!m)return;let c=document.getElementById('chat');c.innerHTML+=`<div class=msg user>${m}</div>`;document.getElementById('i').value='';let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});let d=await r.json();c.innerHTML+=`<div class=msg>${d.reply}</div>`;c.scrollTop=c.scrollHeight}</script></body></html>"""
 
 @app.route("/")
 def home():
     return render_template_string(HTML)
 
 @app.route("/chat", methods=["POST"])
-def chat(): 
+def chat():
+    user_msg = request.json.get("message","")
+    if not GROQ_API_KEY:
+        return jsonify({"reply":"❌ GROQ_API_KEY manquante dans Render > Environment"})
+
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    data = {
+        "model": "llama-3.1-8b-instant",
+        "messages": [
+            {"role": "system", "content": "Tu es KIRA, IA cool de Bujumbura. Tu tutoies ton Patron, tu es rapide et drôle."},
+            {"role": "user", "content": user_msg}
+        ]
+    }
     try:
-        msg = request.json.get("message","")
-        if not GROQ_API_KEY:
-            return jsonify({"reply":"Ajoute GROQ_API_KEY dans Render > Environment"})
-        headers = {"Authorization": f"Bearer {GROQ_API_KEY}","Content-Type":"application/json"}
-        data = {"model":"llama-3.3-70b-versatile","messages":[{"role":"system","content":"Tu es KIRA, IA de Bujumbura, cool, drôle, tu tutoies."},{"role":"user","content":msg}]}
         r = requests.post(GROQ_URL, json=data, headers=headers, timeout=30)
-        ans = r.json()["choices"][0]["message"]["content"]
-        return jsonify({"reply": ans})
+        j = r.json()
+        print("GROQ REPLY:", j) # visible dans Render Logs
+        if "error" in j:
+            return jsonify({"reply": f"❌ Erreur GROQ: {j['error']['message']}"})
+        return jsonify({"reply": j["choices"][0]["message"]["content"]})
     except Exception as e:
-        return jsonify({"reply": f"Erreur: {e}"})
+        return jsonify({"reply": f"❌ Erreur serveur: {e}"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",10000)))

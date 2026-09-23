@@ -18,7 +18,10 @@ def home():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    user_msg = request.json.get("message","")
+        data = request.json
+    user_msg = data.get("message","")
+    if data.get("password") != os.environ.get("KIRA_PASSWORD"):
+        return jsonify({"reply": "🔒 Accès refusé Patron."}), 401
     if not GROQ_API_KEY:
         return jsonify({"reply":"❌ GROQ_API_KEY manquante dans Render > Environment"})
 

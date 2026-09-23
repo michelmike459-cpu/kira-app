@@ -24,8 +24,8 @@ def chat():
 
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     data = {
-           openai/gpt-oss-20b
-        "messages": [
+    "model": "openai/gpt-oss-20b",
+    "messages": [
             {"role": "system", "content": "Tu es KIRA, IA cool de Bujumbura. Tu tutoies ton Patron, tu es rapide et drôle."},
             {"role": "user", "content": user_msg}
         ]

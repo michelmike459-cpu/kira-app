@@ -24,7 +24,7 @@ def chat():
 
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     data = {
-           "model": "llama-3.3-70b-versatile",
+           openai/gpt-oss-20b
         "messages": [
             {"role": "system", "content": "Tu es KIRA, IA cool de Bujumbura. Tu tutoies ton Patron, tu es rapide et drôle."},
             {"role": "user", "content": user_msg}

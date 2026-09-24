@@ -196,12 +196,13 @@ def chat():
         "Content-Type": "application/json"
     }
 
-    payload = {
-        "model": "llama-3.3-70b-versatile",
+        payload = {
+        "model": "llama-3.1-8b-instant",
         "messages": full_messages,
         "temperature": 0.7,
         "max_tokens": 1024
     }
+
 
     try:
         r = requests.post(GROQ_URL, json=payload, headers=headers, timeout=20)
